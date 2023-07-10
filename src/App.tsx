@@ -6,8 +6,26 @@ import { Category, Row } from "./types";
 import Table from "./Table";
 
 export default function App() {
-  const [rows, setRows] = useState<Row[]>([]);
   const [data, setData] = useState<Category[]>([]);
+  const [searchRows, setSearchRows] = useState<Row[]>([]);
+
+  const search = (searchInput: string) => {
+    if (!searchInput || searchInput.length === 0) {
+      setSearchRows([]);
+      return;
+    }
+    console.log({ searchInput: searchInput });
+    const searchValue = searchInput.toLowerCase();
+    const searchRows: Row[] = [];
+    data.forEach((category) => {
+      category.rows.forEach((row) => {
+        if (row.description.toLowerCase().includes(searchValue)) {
+          searchRows.push(row);
+        }
+      });
+    });
+    setSearchRows(searchRows);
+  };
 
   // Store rows in local storage
   useEffect(() => {
@@ -19,7 +37,7 @@ export default function App() {
   useEffect(() => {
     const data = localStorage.getItem("data");
     if (data) {
-      setRows(JSON.parse(data));
+      setData(JSON.parse(data));
     }
   }, []);
 
@@ -31,9 +49,19 @@ export default function App() {
           <Navbar />
           <CSVFileInput setData={setData} />
           <div>
+            <div className="collapse bg-base-200 collapse-arrow">
+              <input type="checkbox" defaultChecked />
+              <div className="collapse-title font-medium">
+                Search
+                <kbd className="kbd ml-5">{searchRows.length}</kbd>
+              </div>
+              <div className="collapse-content bg-base-100">
+                <Table rows={searchRows} />
+              </div>
+            </div>
             {data.map((category, i) => (
               <div key={i} className="collapse bg-base-200 collapse-arrow">
-                <input type="checkbox" />
+                <input type="checkbox" defaultChecked />
                 <div className="collapse-title font-medium">
                   {category.name}
                   <kbd className="kbd ml-5">{category.rows.length}</kbd>
@@ -45,7 +73,7 @@ export default function App() {
             ))}
           </div>
         </div>
-        <Sidebar />
+        <Sidebar search={search} />
       </div>
     </>
   );
