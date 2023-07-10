@@ -3,7 +3,7 @@ interface NavbarItem {
   children?: NavbarItem[];
   wip?: boolean;
 }
-const NAVBAR_ITEMS: NavbarItem[] = [{ name: "Home" }];
+const NAVBAR_ITEMS: NavbarItem[] = [];
 const NAVBAR_TITLE = "Financial Tracker";
 
 export default function Navbar() {
@@ -38,11 +38,9 @@ export default function Navbar() {
         <a className="btn-ghost btn text-xl normal-case">{NAVBAR_TITLE}</a>
       </div>
       <div className="navbar-center hidden lg:flex">
-        <div className="tabs tabs-boxed">
-          <ul className="menu menu-horizontal px-1">
-            <NavbarItems />
-          </ul>
-        </div>
+        <ul className="menu menu-horizontal px-1">
+          <NavbarItems />
+        </ul>
       </div>
       <div className="navbar-end">
         <a className="btn">GitHub</a>
