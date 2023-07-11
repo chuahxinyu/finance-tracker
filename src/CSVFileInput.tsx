@@ -4,10 +4,8 @@ import { Row } from "./types";
 
 export default function CSVFileInput({
   setData,
-  recategoriseAll,
 }: {
   setData: (data: Row[]) => void;
-  recategoriseAll: () => void;
 }) {
   const [isOverwrite, setIsOverwrite] = useState(false);
 

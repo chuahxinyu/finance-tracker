@@ -227,7 +227,6 @@ export default function App() {
                 <div className="flex flex-row">
                   <CSVFileInput
                     setData={setData}
-                    recategoriseAll={recategoriseAll}
                   />
                   <DateFilter
                     filterByDate={filterByDate}
