@@ -1,12 +1,14 @@
 import Papa from "papaparse";
-import { ChangeEvent } from "react";
-import { Category, Row } from "./types";
+import { ChangeEvent, useState } from "react";
+import { Row } from "./types";
 
 export default function CSVFileInput({
   setData,
 }: {
-  setData: (data: Category[]) => void;
+  setData: (data: Row[]) => void;
 }) {
+  const [isAppend, setIsAppend] = useState(false);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
 
@@ -25,37 +27,42 @@ export default function CSVFileInput({
             ),
             amount: parseFloat(d2[1]),
             description: d2[2],
+            category: "Uncategorised",
+            show: true,
           };
           return row;
         });
-        console.log(rows);
-
-        // Convert Rows to Categories via Rules
-        // TODO
-
-        // Uncategorised Rows
-        const uncategorised: Category = {
-          name: "Uncategorised",
-          rows: rows,
-        };
-        setData([uncategorised]);
+        if (isAppend) {
+          setData([...data, ...rows] as Row[]);
+          return;
+        }
+        setData(rows);
       },
       header: false, // Set this to true if your CSV file has headers
       dynamicTyping: true, // Set this to true if you want PapaParse to infer types
       skipEmptyLines: true, // Set this to true to skip empty lines
     });
   };
+
   return (
-    <div className="form-control border-2 p-2 px-10 mb-4">
-      <label className="label">
-        <span className="label-text">CSV File Input</span>
-      </label>
+    <div className="border-2 p-2 px-10 mb-4 bg-base-100">
+      <p className="mb-2 font-semibold text-lg">CSV File Input</p>
       <input
         type="file"
         accept=".csv"
         className="file-input file-input-bordered file-input-xs w-full max-w-xs"
         onChange={(e) => handleFileChange(e)}
       />
+      {/* Checkbox for appending */}
+      <label className="cursor-pointer label">
+        <span className="label-text text-sm">Append to current data</span>
+        <input
+          type="checkbox"
+          checked={isAppend}
+          onChange={(e) => setIsAppend(e.target.checked)}
+          className="checkbox checkbox-sm"
+        />
+      </label>
     </div>
   );
 }
