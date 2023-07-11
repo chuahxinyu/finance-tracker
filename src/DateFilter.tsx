@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DateFilter({
   filterByDate,
@@ -9,7 +9,7 @@ export default function DateFilter({
 }) {
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
-  const [filterOn, setFilterOn] = useState(false);
+  const [filterOn, setFilterOn] = useState<boolean | undefined>(undefined);
 
   const runFilter = (month: number, year: number, filterState?: boolean) => {
     if ((!filterOn && filterState) || (filterOn && filterState === undefined)) {
@@ -19,6 +19,20 @@ export default function DateFilter({
     }
     recategoriseAll();
   };
+
+  // Store filterOn in localStorage
+  useEffect(() => {
+    if (filterOn === undefined) return;
+    localStorage.setItem("filterOn", (filterOn as boolean).toString());
+  }, [filterOn]);
+
+  // Get filterOn from localStorage
+  useEffect(() => {
+    const filterOn = localStorage.getItem("filterOn");
+    if (filterOn) {
+      setFilterOn(JSON.parse(filterOn));
+    }
+  }, []);
 
   return (
     <div className="border-2 p-2 px-10 mb-4 bg-base-100">
