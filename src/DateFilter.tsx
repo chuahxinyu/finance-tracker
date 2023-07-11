@@ -7,8 +7,8 @@ export default function DateFilter({
   filterByDate: (month: string, year: string) => void;
   recategoriseAll: () => void;
 }) {
-  const [month, setMonth] = useState(new Date().getMonth());
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(1);
+  const [year, setYear] = useState(2023);
   const [filterOn, setFilterOn] = useState<boolean | undefined>(undefined);
 
   const runFilter = (month: number, year: number, filterState?: boolean) => {

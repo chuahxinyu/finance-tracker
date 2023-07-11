@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Rule } from "./types";
+import { MOCK_RULES } from "./MockData";
 
-export default function Sidebar({
+export default function Rules({
   search,
   categorise,
   recategorise,
@@ -10,7 +11,7 @@ export default function Sidebar({
   categorise: (rule: Rule) => void;
   recategorise: () => void;
 }) {
-  const [rules, setRules] = useState<Rule[]>([]);
+  const [rules, setRules] = useState<Rule[]>(MOCK_RULES);
   const [name, setName] = useState("");
   const [searchFor, setSearchFor] = useState("");
   const [category, setCategory] = useState("");
@@ -50,7 +51,7 @@ export default function Sidebar({
 
   // Store rules in local storage
   useEffect(() => {
-    if (rules.length === 0) return;
+    if (rules.length === 0 || rules === MOCK_RULES) return;
     localStorage.setItem("rules", JSON.stringify(rules));
   }, [rules]);
 

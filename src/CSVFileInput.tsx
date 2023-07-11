@@ -4,10 +4,12 @@ import { Row } from "./types";
 
 export default function CSVFileInput({
   setData,
+  recategoriseAll,
 }: {
   setData: (data: Row[]) => void;
+  recategoriseAll: () => void;
 }) {
-  const [isAppend, setIsAppend] = useState(false);
+  const [isOverwrite, setIsOverwrite] = useState(false);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
@@ -31,14 +33,14 @@ export default function CSVFileInput({
           };
           return row;
         });
-        if (isAppend) {
+        if (!isOverwrite) {
           const existingData = localStorage.getItem("data");
           if (existingData) {
             setData([...JSON.parse(existingData), ...rows] as Row[]);
             return;
           }
         }
-        setData(rows);
+        setData([...rows]);
       },
       header: false, // Set this to true if your CSV file has headers
       dynamicTyping: true, // Set this to true if you want PapaParse to infer types
@@ -55,13 +57,13 @@ export default function CSVFileInput({
         className="file-input file-input-bordered file-input-xs w-full max-w-xs"
         onChange={(e) => handleFileChange(e)}
       />
-      {/* Checkbox for appending */}
+
       <label className="cursor-pointer label">
-        <span className="label-text text-sm">Append to current data</span>
+        <span className="label-text text-sm">Overwrite current data</span>
         <input
           type="checkbox"
-          checked={isAppend}
-          onChange={(e) => setIsAppend(e.target.checked)}
+          checked={isOverwrite}
+          onChange={(e) => setIsOverwrite(e.target.checked)}
           className="checkbox checkbox-sm"
         />
       </label>

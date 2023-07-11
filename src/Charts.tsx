@@ -31,11 +31,11 @@ export default function Charts({
 }) {
   const [isIncome, setIsIncome] = useState(false);
   const [chartData, setChartData] = useState({
-    labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+    labels: [""],
     datasets: [
       {
-        label: "# of Votes",
-        data: [12, 19, 3, 5, 2, 3],
+        label: "Recategorise to see chart",
+        data: [1],
         borderWidth: 1,
       },
     ],

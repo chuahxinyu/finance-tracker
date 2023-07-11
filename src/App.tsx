@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
-import Sidebar from "./Sidebar";
+import Rules from "./Rules";
 import CSVFileInput from "./CSVFileInput";
 import { Category, Row, Rule } from "./types";
 import Table from "./Table";
 import DateFilter from "./DateFilter";
 import Charts from "./Charts";
+import { MOCK_DATA, MOCK_RULES } from "./MockData";
 
 export default function App() {
-  const [data, setData] = useState<Row[]>([]);
+  const [data, setData] = useState<Row[]>(MOCK_DATA);
   const [searchRows, setSearchRows] = useState<Row[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesToInvert, setCategoriesToInvert] = useState<string[]>([]);
@@ -46,9 +47,10 @@ export default function App() {
 
   const recategoriseAll = () => {
     // Get all rules
-    const rules = localStorage.getItem("rules");
-    if (!rules) return;
+    const rules = localStorage.getItem("rules") || JSON.stringify(MOCK_RULES);
     const parsedRules: Rule[] = JSON.parse(rules);
+
+    console.log({ recategoriseAll: parsedRules });
 
     // Categorise
     parsedRules.forEach((rule) => {
@@ -161,7 +163,7 @@ export default function App() {
 
   // Store rows in local storage and update categories
   useEffect(() => {
-    if (data.length === 0) return;
+    if (data.length === 0 || data === MOCK_DATA) return;
     localStorage.setItem("data", JSON.stringify(data));
     const categories: Category[] = [];
     data.forEach((row) => {
@@ -199,6 +201,8 @@ export default function App() {
     const data = localStorage.getItem("data");
     if (data) {
       setData(JSON.parse(data));
+    } else {
+      setData([...MOCK_DATA]);
     }
 
     const invertedCategories = localStorage.getItem("invertedCategories");
@@ -212,7 +216,7 @@ export default function App() {
       <div className="drawer lg:drawer-open">
         <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
         <div className="container mx-auto drawer-content flex flex-col items-center">
-          <Navbar />
+          <Navbar recategoriseAll={recategoriseAll} />
           <div className="mb-5 bg-primary ">
             <div className="collapse mb-2 collapse-arrow ">
               <input type="checkbox" defaultChecked />
@@ -221,7 +225,10 @@ export default function App() {
               </div>
               <div className="collapse-content flex flex-col">
                 <div className="flex flex-row">
-                  <CSVFileInput setData={setData} />
+                  <CSVFileInput
+                    setData={setData}
+                    recategoriseAll={recategoriseAll}
+                  />
                   <DateFilter
                     filterByDate={filterByDate}
                     recategoriseAll={recategoriseAll}
@@ -314,7 +321,7 @@ export default function App() {
           </div>
         </div>
 
-        <Sidebar
+        <Rules
           search={search}
           categorise={categorise}
           recategorise={recategoriseAll}

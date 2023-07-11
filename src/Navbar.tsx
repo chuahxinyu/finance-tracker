@@ -4,9 +4,9 @@ interface NavbarItem {
   wip?: boolean;
 }
 const NAVBAR_ITEMS: NavbarItem[] = [];
-const NAVBAR_TITLE = "💸 Financial Tracker";
+const NAVBAR_TITLE = "💸 Finance Tracker";
 
-export default function Navbar() {
+export default function Navbar({ recategoriseAll }: { recategoriseAll: () => void}) {
   return (
     <div className="navbar bg-base-100">
       <div className="navbar-start">
@@ -30,7 +30,10 @@ export default function Navbar() {
             />
           </svg>
         </label>
-        <a className="btn-ghost btn text-xl normal-case" href="/">
+        <a
+          className="btn-ghost btn text-xl normal-case"
+          onClick={recategoriseAll}
+        >
           {NAVBAR_TITLE}
         </a>
       </div>
