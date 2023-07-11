@@ -72,6 +72,7 @@ export default function App() {
       });
       return;
     }
+
     data.forEach((row) => {
       const date = new Date(row.date);
       if (
@@ -79,8 +80,82 @@ export default function App() {
         date.getFullYear() !== parseInt(year)
       ) {
         row.show = false;
+      } else {
+        row.show = true;
       }
     });
+  };
+
+  const calculateOpeningBalance = () => {
+    if (data.length === 0) return 0;
+
+    // If "Opening Balance" is in one of the row's description, return that row's amount
+    const openingBalanceRow = data.find(
+      (row) =>
+        row.description.toLowerCase().includes("opening balance") && row.show
+    );
+    if (openingBalanceRow) return openingBalanceRow.amount;
+
+    // Get month and year from earliest date of data that is shown
+    const earliestDate = data
+      .filter((row) => row.show)
+      .reduce((earliestDate, row) => {
+        const date = new Date(row.date);
+        if (date < earliestDate) {
+          return date;
+        }
+        return earliestDate;
+      }, new Date(data[0].date));
+    const month = earliestDate.getMonth() + 1;
+    const year = earliestDate.getFullYear();
+
+    const openingBalance = data
+      .filter((row) => {
+        const date = new Date(row.date);
+        return date.getMonth() + 1 < month && date.getFullYear() <= year;
+      })
+      .reduce((total, row) => {
+        return total + row.amount;
+      }, 0);
+
+    // Round to 2dp
+    return Math.round(openingBalance * 100) / 100;
+  };
+
+  const calculateExpenses = () => {
+    if (data.length === 0) return 0;
+
+    const expenses = calculateTotal(
+      data.filter((row) => row.show && row.amount < 0)
+    );
+    return expenses;
+  };
+
+  const calculateIncome = () => {
+    if (data.length === 0) return 0;
+
+    const income = calculateTotal(
+      data.filter(
+        (row) =>
+          row.show && row.amount > 0 && row.description !== "Opening Balance"
+      )
+    );
+    return income;
+  };
+
+  const calculateNet = () => {
+    if (data.length === 0) return 0;
+
+    const net = calculateIncome() + calculateExpenses();
+    return Math.round(net * 100) / 100;
+  };
+
+  const calculateClosingBalance = () => {
+    if (data.length === 0) return 0;
+
+    const openingBalance = calculateOpeningBalance();
+    const total = calculateTotal(data.filter((row) => row.show));
+    return openingBalance + total;
   };
 
   // Store rows in local storage and update categories
@@ -124,12 +199,27 @@ export default function App() {
               <div className="collapse-title font-medium text-white">
                 Add/Filter
               </div>
-              <div className="collapse-content flex flex-row">
-                <CSVFileInput setData={setData} />
-                <DateFilter
-                  filterByDate={filterByDate}
-                  recategoriseAll={recategoriseAll}
-                />
+              <div className="collapse-content flex flex-col">
+                <div className="flex flex-row">
+                  <CSVFileInput setData={setData} />
+                  <DateFilter
+                    filterByDate={filterByDate}
+                    recategoriseAll={recategoriseAll}
+                  />
+                </div>
+                <div className="bg-base-100 p-2">
+                  <p>
+                    Opening Balance: ${" "}
+                    {calculateOpeningBalance().toLocaleString()}
+                  </p>
+                  {/* <p>Expenses: $ {calculateExpenses().toLocaleString()}</p>
+                  <p>Income: $ {calculateIncome().toLocaleString()}</p> */}
+                  <p>Net Profit/Loss: $ {calculateNet().toLocaleString()}</p>
+                  <p>
+                    Closing Balance: ${" "}
+                    {calculateClosingBalance().toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

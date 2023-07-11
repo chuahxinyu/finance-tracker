@@ -5,10 +5,21 @@ export default function DateFilter({
   recategoriseAll,
 }: {
   filterByDate: (month: string, year: string) => void;
-    recategoriseAll: () => void;
+  recategoriseAll: () => void;
 }) {
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
+  const [filterOn, setFilterOn] = useState(false);
+
+  const runFilter = (month: number, year: number, filterState?: boolean) => {
+    if ((!filterOn && filterState) || (filterOn && filterState === undefined)) {
+      filterByDate(month.toString(), year.toString());
+    } else {
+      filterByDate("", "");
+    }
+    recategoriseAll();
+  };
+
   return (
     <div className="border-2 p-2 px-10 mb-4 bg-base-100">
       <p className="mb-2 font-semibold text-lg">Date Filter</p>
@@ -21,7 +32,12 @@ export default function DateFilter({
           placeholder="Month"
           className="input input-bordered input-sm"
           value={month}
-          onChange={(e) => setMonth(parseInt(e.target.value))}
+          onChange={(e) => {
+            setMonth(parseInt(e.target.value));
+            runFilter(parseInt(e.target.value), year);
+          }}
+          min={1}
+          max={12}
         />
 
         <label className="label">
@@ -32,7 +48,12 @@ export default function DateFilter({
           placeholder="Year"
           className="input input-bordered input-sm"
           value={year}
-          onChange={(e) => setYear(parseInt(e.target.value))}
+          onChange={(e) => {
+            setYear(parseInt(e.target.value));
+            runFilter(month, parseInt(e.target.value));
+          }}
+          min={2022}
+          max={new Date().getFullYear()}
         />
 
         {/* Checkmark Filter */}
@@ -42,13 +63,10 @@ export default function DateFilter({
             type="checkbox"
             className="checkbox"
             onChange={(e) => {
-              if (e.target.checked) {
-                filterByDate(month.toString(), year.toString());
-              } else {
-                filterByDate("", "");
-              }
-              recategoriseAll();
+              setFilterOn(e.target.checked);
+              runFilter(month, year, e.target.checked);
             }}
+            checked={filterOn}
           />
           <span className="checkbox-mark"></span>
         </label>

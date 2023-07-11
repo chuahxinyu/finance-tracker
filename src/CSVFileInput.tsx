@@ -16,7 +16,6 @@ export default function CSVFileInput({
 
     Papa.parse(file, {
       complete: (results) => {
-        console.log(results);
         // Convert Arrays to Row Objects
         const data = results.data;
         const rows: Row[] = data.map((d: unknown) => {
@@ -33,8 +32,11 @@ export default function CSVFileInput({
           return row;
         });
         if (isAppend) {
-          setData([...data, ...rows] as Row[]);
-          return;
+          const existingData = localStorage.getItem("data");
+          if (existingData) {
+            setData([...JSON.parse(existingData), ...rows] as Row[]);
+            return;
+          }
         }
         setData(rows);
       },
