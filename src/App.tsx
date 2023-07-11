@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import CSVFileInput from "./CSVFileInput";
 import { Category, Row, Rule } from "./types";
 import Table from "./Table";
 import DateFilter from "./DateFilter";
+import Charts from "./Charts";
 
 export default function App() {
   const [data, setData] = useState<Row[]>([]);
   const [searchRows, setSearchRows] = useState<Row[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesToInvert, setCategoriesToInvert] = useState<string[]>([]);
 
   const search = (searchInput: string) => {
     if (!searchInput || searchInput.length === 0) {
@@ -54,13 +56,14 @@ export default function App() {
     });
   };
 
-  const calculateTotal = (rows: Row[]) => {
+  const calculateTotal = (rows: Row[], isInverted?: boolean) => {
     let total = 0;
     rows.forEach((row) => {
       total += row.amount;
     });
     // Round total to 2dp
     total = Math.round(total * 100) / 100;
+    if (isInverted) total *= -1;
     return total;
   };
 
@@ -125,37 +128,35 @@ export default function App() {
   const calculateExpenses = () => {
     if (data.length === 0) return 0;
 
-    const expenses = calculateTotal(
-      data.filter((row) => row.show && row.amount < 0)
-    );
+    const expenses = categories.reduce((total, category) => {
+      const categoryTotal = calculateTotal(
+        category.rows.filter((row) => row.show),
+        category.isInverted
+      );
+      return total + (categoryTotal < 0 ? Math.abs(categoryTotal) : 0);
+    }, 0);
+
     return expenses;
   };
 
   const calculateIncome = () => {
     if (data.length === 0) return 0;
 
-    const income = calculateTotal(
-      data.filter(
-        (row) =>
-          row.show && row.amount > 0 && row.description !== "Opening Balance"
-      )
-    );
+    const income = categories.reduce((total, category) => {
+      const categoryTotal = calculateTotal(
+        category.rows.filter((row) => row.show),
+        category.isInverted
+      );
+      return total + (categoryTotal > 0 ? categoryTotal : 0);
+    }, 0);
     return income;
   };
 
   const calculateNet = () => {
     if (data.length === 0) return 0;
 
-    const net = calculateIncome() + calculateExpenses();
+    const net = calculateIncome() - calculateExpenses();
     return Math.round(net * 100) / 100;
-  };
-
-  const calculateClosingBalance = () => {
-    if (data.length === 0) return 0;
-
-    const openingBalance = calculateOpeningBalance();
-    const total = calculateTotal(data.filter((row) => row.show));
-    return openingBalance + total;
   };
 
   // Store rows in local storage and update categories
@@ -173,17 +174,36 @@ export default function App() {
         categories.push({
           name: row.category,
           rows: [row],
+          isInverted: categoriesToInvert.includes(row.category),
         });
       }
     });
     setCategories(categories);
-  }, [data]);
+  }, [categoriesToInvert, data]);
 
-  // Load rows from local storage
+  // Store inverted categories in local storage
+  useEffect(() => {
+    const invertedCategories = categories
+      .filter((category) => category.isInverted)
+      .map((category) => category.name);
+
+    if (invertedCategories.length === 0) return;
+    localStorage.setItem(
+      "invertedCategories",
+      JSON.stringify(invertedCategories)
+    );
+  }, [categories]);
+
+  // Load rows and inverted categories from local storage
   useEffect(() => {
     const data = localStorage.getItem("data");
     if (data) {
       setData(JSON.parse(data));
+    }
+
+    const invertedCategories = localStorage.getItem("invertedCategories");
+    if (invertedCategories && invertedCategories.length > 0) {
+      setCategoriesToInvert(JSON.parse(invertedCategories));
     }
   }, []);
 
@@ -207,18 +227,18 @@ export default function App() {
                     recategoriseAll={recategoriseAll}
                   />
                 </div>
+                <Charts
+                  categories={categories}
+                  calculateTotal={calculateTotal}
+                />
                 <div className="bg-base-100 p-2">
                   <p>
                     Opening Balance: ${" "}
                     {calculateOpeningBalance().toLocaleString()}
                   </p>
-                  {/* <p>Expenses: $ {calculateExpenses().toLocaleString()}</p>
-                  <p>Income: $ {calculateIncome().toLocaleString()}</p> */}
+                  <p>Expenses: $ {calculateExpenses().toLocaleString()}</p>
+                  <p>Income: $ {calculateIncome().toLocaleString()}</p>
                   <p>Net Profit/Loss: $ {calculateNet().toLocaleString()}</p>
-                  <p>
-                    Closing Balance: ${" "}
-                    {calculateClosingBalance().toLocaleString()}
-                  </p>
                 </div>
               </div>
             </div>
@@ -252,21 +272,40 @@ export default function App() {
                   key={i}
                   className="collapse bg-base-200 collapse-arrow mb-2"
                 >
-                  <input type="checkbox" defaultChecked />
+                  <input type="checkbox" />
                   <div className="collapse-title font-medium">
                     {category.name}
                     <kbd className="kbd ml-5">{showRows.length}</kbd>
                     <button
                       className={`btn float-right btn-sm ${
-                        calculateTotal(showRows) > 0
+                        calculateTotal(showRows, category.isInverted) > 0
                           ? "btn-success"
                           : "btn-error"
                       }`}
                     >
-                      ${calculateTotal(showRows).toLocaleString()}
+                      $
+                      {calculateTotal(
+                        showRows,
+                        category.isInverted
+                      ).toLocaleString()}
                     </button>
                   </div>
-                  <div className="collapse-content bg-base-100">
+                  <div className="collapse-content">
+                    <div className="flex flex-row bg-base-100 align-middle items-center m-2">
+                      <label className="cursor-pointer label">
+                        <span className="label-text">Invert?</span>
+                      </label>
+                      <input
+                        type="checkbox"
+                        checked={category.isInverted}
+                        onChange={(e) => {
+                          const newCategories = [...categories];
+                          newCategories[i].isInverted = e.target.checked;
+                          setCategories(newCategories);
+                        }}
+                        className="checkbox"
+                      />
+                    </div>
                     <Table rows={showRows} />
                   </div>
                 </div>

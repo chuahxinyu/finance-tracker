@@ -9,6 +9,7 @@ export interface Row {
 export interface Category {
   name: string;
   rows: Row[];
+  isInverted?: boolean;
 }
 
 export interface Rule {
