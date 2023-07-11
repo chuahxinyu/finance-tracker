@@ -4,7 +4,7 @@ interface NavbarItem {
   wip?: boolean;
 }
 const NAVBAR_ITEMS: NavbarItem[] = [];
-const NAVBAR_TITLE = "Financial Tracker";
+const NAVBAR_TITLE = "💸 Financial Tracker";
 
 export default function Navbar() {
   return (
@@ -30,7 +30,9 @@ export default function Navbar() {
             />
           </svg>
         </label>
-        <a className="btn-ghost btn text-xl normal-case">{NAVBAR_TITLE}</a>
+        <a className="btn-ghost btn text-xl normal-case" href="/">
+          {NAVBAR_TITLE}
+        </a>
       </div>
       <div className="navbar-center hidden lg:flex">
         <ul className="menu menu-horizontal px-1">
@@ -38,7 +40,13 @@ export default function Navbar() {
         </ul>
       </div>
       <div className="navbar-end">
-        <a className="btn">GitHub</a>
+        <a
+          className="btn"
+          href="https://github.com/chuahxinyu/finance-tracker"
+          target="_blank"
+        >
+          GitHub
+        </a>
       </div>
     </div>
   );
