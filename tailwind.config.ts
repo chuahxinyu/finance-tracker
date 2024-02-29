@@ -1,14 +1,10 @@
-import { type Config } from "tailwindcss";
-import { fontFamily } from "tailwindcss/defaultTheme";
+import { Config } from "tailwindcss";
 
 export default {
-  content: ["./src/**/*.tsx"],
+  content: ["./src/**/*.{html,js,ts,tsx}"],
   theme: {
-    extend: {
-      fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
-      },
-    },
+    extend: {},
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography"), require("daisyui")],
 } satisfies Config;
+
