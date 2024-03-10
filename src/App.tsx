@@ -136,8 +136,6 @@ function App() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log(file);
-
       Papa.parse(file, {
         header: true,
         dynamicTyping: true,
@@ -147,6 +145,8 @@ function App() {
           setData(result.data as Row[]);
         },
       });
+
+      event.target.value = "";
     }
   };
 
@@ -237,33 +237,41 @@ function App() {
                   />
                 </td>
                 <td>{index}</td>
-                {getColumnNames(data).map((columnName, index) => (
-                  <td key={index}>{row[columnName] as string}</td>
-                ))}
-                <td>
-                  {/* <input
-                    type="text"
-                    placeholder="Type tag here..."
-                    className="input input-bordered w-full input-xs"
-                    onKeyDown={(
-                      event: React.KeyboardEvent<HTMLInputElement>
-                    ) => {
-                      handleOnKeyDown(event, row, index);
-                    }}
-                  />
-                  {row["tags"] &&
-                    (row["tags"] as string[]).map(
-                      (tag: string, tagIndex: number) => (
-                        <Tag
-                          tag={tag}
-                          tagColoursMap={tagColoursMap}
-                          onDelete={() => {
-                            handleDeleteTag(tag, index, row);
-                          }}
-                          key={tagIndex}
+                {getColumnNames(data).map((columnName) => {
+                  if (columnName == "Custom Description") {
+                    return (
+                      <td key={columnName}>
+                        <textarea
+                          className="input"
+                          defaultValue={row[columnName] as string}
                         />
-                      )
-                    )} */}
+                        <button
+                          className="btn btn-xs btn-ghost btn-square"
+                          onClick={() => {
+                            const newVal = (
+                              document.querySelector(
+                                `textarea`
+                              ) as HTMLTextAreaElement
+                            ).value;
+                            const newRow = { ...row };
+                            newRow["Custom Description"] = newVal;
+                            const newData = data.map((r, i) => {
+                              if (i === index) {
+                                return newRow;
+                              }
+                              return r;
+                            });
+                            setData(newData);
+                          }}
+                        >
+                          Save
+                        </button>
+                      </td>
+                    );
+                  }
+                  return <td key={columnName}>{row[columnName] as string}</td>;
+                })}
+                <td>
                   <Select
                     options={tagColoursMap}
                     isMulti
