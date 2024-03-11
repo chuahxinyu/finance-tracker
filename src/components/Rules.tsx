@@ -1,6 +1,62 @@
 import { useEffect, useState } from "react";
-import { Rule } from "./types";
-import { MOCK_RULES } from "./MockData";
+import { RuleI } from "../types";
+import { MOCK_RULES } from "../SampleData";
+
+const Rule = ({
+  rule,
+  removeRule,
+  saveRule,
+}: {
+  rule: RuleI;
+  removeRule: (name: string, searchFor: string) => void;
+  saveRule: (rule: RuleI) => void;
+}) => {
+  const [searchFor, setSearchFor] = useState(rule.searchFor);
+  const [category, setCategory] = useState(rule.category);
+
+  return (
+    <div className="card bg-base-100 shadow-xl mb-2" key={rule.name}>
+      <div className="card-body">
+        <h2 className="card-title">{rule.name}</h2>
+        <div className="flex">
+          <p>Search For:</p>{" "}
+          <input
+            type="text"
+            className="input input-xs input-bordered"
+            value={searchFor}
+            onChange={(e) => setSearchFor(e.target.value)}
+          />
+        </div>
+        <div className="flex">
+          <p>Categorise to:</p>{" "}
+          <input
+            type="text"
+            className="input input-xs input-bordered"
+            defaultValue={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="card-actions justify-end">
+        <button
+          className="btn btn-sm btn-primary"
+          onClick={() => {
+            saveRule({ ...rule, searchFor, category });
+          }}
+          disabled={searchFor === rule.searchFor && category === rule.category}
+        >
+          Save
+        </button>
+        <button
+          className="btn btn-error btn-sm"
+          onClick={() => removeRule(rule.name, rule.searchFor)}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function Rules({
   search,
@@ -8,22 +64,22 @@ export default function Rules({
   recategorise,
 }: {
   search: (searchInput: string) => void;
-  categorise: (rule: Rule) => void;
+  categorise: (rule: RuleI) => void;
   recategorise: () => void;
 }) {
-  const [rules, setRules] = useState<Rule[]>(MOCK_RULES);
+  const [rules, setRules] = useState<RuleI[]>(MOCK_RULES);
   const [name, setName] = useState("");
   const [searchFor, setSearchFor] = useState("");
   const [category, setCategory] = useState("");
 
   const addRule = () => {
     // Validate
-    if (!name || !searchFor || !category) {
+    if (!searchFor || !category) {
       alert("Please fill in all fields");
       return;
     }
     const newRule = {
-      name: name,
+      name: name || searchFor,
       searchFor: searchFor,
       category: category,
     };
@@ -47,6 +103,18 @@ export default function Rules({
       category: "Uncategorised",
     };
     categorise(uncategoriseRule);
+  };
+
+  const saveRule = (rule: RuleI) => {
+    setRules(
+      rules.map((r) => {
+        if (r.name === rule.name) {
+          return rule;
+        }
+        return r;
+      })
+    );
+    recategorise();
   };
 
   // Store rules in local storage
@@ -112,21 +180,12 @@ export default function Rules({
         </div>
 
         {rules.map((rule) => (
-          <div className="card bg-base-100 shadow-xl mb-2" key={rule.name}>
-            <div className="card-body">
-              <h2 className="card-title">{rule.name}</h2>
-              <p>Search For: {rule.searchFor}</p>
-              <p>Categorise to: {rule.category}</p>
-            </div>
-            <div className="card-actions justify-end">
-              <button
-                className="btn btn-error btn-sm"
-                onClick={() => removeRule(rule.name, rule.searchFor)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+          <Rule
+            rule={rule}
+            removeRule={removeRule}
+            saveRule={saveRule}
+            key={rule.name}
+          />
         ))}
       </ul>
     </div>

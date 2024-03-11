@@ -1,18 +1,62 @@
 import { useEffect, useState } from "react";
-import Navbar from "./Navbar";
-import Rules from "./Rules";
-import CSVFileInput from "./CSVFileInput";
-import { Category, Row, Rule } from "./types";
-import Table from "./Table";
-import DateFilter from "./DateFilter";
-import Charts from "./Charts";
-import { MOCK_DATA, MOCK_RULES } from "./MockData";
+import Navbar from "./components/Navbar";
+import Rules from "./components/Rules";
+import CSVFileInput from "./components/CSVFileInput";
+import { Category, Row, RuleI, SortBy } from "./types";
+import Table from "./components/Table";
+import Charts from "./components/Charts";
+import { MOCK_RULES } from "./SampleData";
+import useRowsStore from "./hooks/useStore";
+import {
+  calculateTotal,
+  calculateOpeningBalance,
+  calculateExpenses,
+  calculateIncome,
+  calculateNet,
+} from "./calculateUtils";
+import { getCategories } from "./categoriesUtil";
 
 export default function App() {
-  const [data, setData] = useState<Row[]>(MOCK_DATA);
-  const [searchRows, setSearchRows] = useState<Row[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesToInvert, setCategoriesToInvert] = useState<string[]>([]);
+  const allRows = useRowsStore((state) => state.rows);
+  const setRows = useRowsStore((state) => state.setRows);
+  const [searchedRows, setSearchRows] = useState<Row[]>([]);
+  const [sortBy, setSortBy] = useState<SortBy>("alphabetical");
+
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      name: "Uncategorised",
+      rows: [],
+      isInverted: false,
+    },
+  ]);
+
+  // Update categories when rows change
+  useEffect(() => {
+    const newCategories: Category[] = getCategories(allRows);
+
+    if (sortBy === "amount") {
+      newCategories.sort((a, b) => {
+        const aTotal = calculateTotal(
+          a.rows.filter((row) => row.show),
+          a.isInverted
+        );
+        const bTotal = calculateTotal(
+          b.rows.filter((row) => row.show),
+          b.isInverted
+        );
+        return Math.abs(bTotal) - Math.abs(aTotal);
+      });
+    } else {
+      // Sort categories alphabetically but keep Uncategorised at the top
+      newCategories.sort((a, b) => {
+        if (a.name === "Uncategorised") return -1;
+        if (b.name === "Uncategorised") return 1;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    setCategories(newCategories);
+  }, [allRows, setSortBy, sortBy]);
 
   const search = (searchInput: string) => {
     if (!searchInput || searchInput.length === 0) {
@@ -21,7 +65,7 @@ export default function App() {
     }
     const searchValue = searchInput.toLowerCase();
     const searchRows: Row[] = [];
-    data.forEach((row) => {
+    allRows.forEach((row) => {
       if (row.description.toLowerCase().includes(searchValue)) {
         searchRows.push(row);
       }
@@ -34,23 +78,26 @@ export default function App() {
     searchFor: string;
     category: string;
   }) => {
-    data.forEach((row) => {
+    allRows.forEach((row) => {
       if (
         row.description.toLowerCase().includes(rule.searchFor.toLowerCase())
       ) {
         row.category = rule.category;
       }
     });
-    setData([...data]);
+    setRows(allRows);
     setSearchRows([]);
   };
 
   const recategoriseAll = () => {
     // Get all rules
     const rules = localStorage.getItem("rules") || JSON.stringify(MOCK_RULES);
-    const parsedRules: Rule[] = JSON.parse(rules);
+    const parsedRules: RuleI[] = JSON.parse(rules);
 
-    console.log({ recategoriseAll: parsedRules });
+    // Uncategorise all rows
+    allRows.forEach((row) => {
+      row.category = "Uncategorised";
+    });
 
     // Categorise
     parsedRules.forEach((rule) => {
@@ -58,166 +105,13 @@ export default function App() {
     });
   };
 
-  const calculateTotal = (rows: Row[], isInverted?: boolean) => {
-    let total = 0;
-    rows.forEach((row) => {
-      total += row.amount;
-    });
-    // Round total to 2dp
-    total = Math.round(total * 100) / 100;
-    if (isInverted) total *= -1;
-    return total;
-  };
-
-  const filterByDate = (month: string, year: string) => {
-    if (!month || !year) {
-      // Show all rows
-      data.forEach((row) => {
-        row.show = true;
-      });
-      return;
-    }
-
-    data.forEach((row) => {
-      const date = new Date(row.date);
-      if (
-        date.getMonth() + 1 !== parseInt(month) ||
-        date.getFullYear() !== parseInt(year)
-      ) {
-        row.show = false;
-      } else {
-        row.show = true;
-      }
-    });
-  };
-
-  const calculateOpeningBalance = () => {
-    if (data.length === 0) return 0;
-
-    // If "Opening Balance" is in one of the row's description, return that row's amount
-    const openingBalanceRow = data.find(
-      (row) =>
-        row.description.toLowerCase().includes("opening balance") && row.show
-    );
-    if (openingBalanceRow) return openingBalanceRow.amount;
-
-    // Get month and year from earliest date of data that is shown
-    const earliestDate = data
-      .filter((row) => row.show)
-      .reduce((earliestDate, row) => {
-        const date = new Date(row.date);
-        if (date < earliestDate) {
-          return date;
-        }
-        return earliestDate;
-      }, new Date(data[0].date));
-    const month = earliestDate.getMonth() + 1;
-    const year = earliestDate.getFullYear();
-
-    const openingBalance = data
-      .filter((row) => {
-        const date = new Date(row.date);
-        return date.getMonth() + 1 < month && date.getFullYear() <= year;
-      })
-      .reduce((total, row) => {
-        return total + row.amount;
-      }, 0);
-
-    // Round to 2dp
-    return Math.round(openingBalance * 100) / 100;
-  };
-
-  const calculateExpenses = () => {
-    if (data.length === 0) return 0;
-
-    const expenses = categories.reduce((total, category) => {
-      const categoryTotal = calculateTotal(
-        category.rows.filter((row) => row.show),
-        category.isInverted
-      );
-      return total + (categoryTotal < 0 ? Math.abs(categoryTotal) : 0);
-    }, 0);
-
-    return expenses;
-  };
-
-  const calculateIncome = () => {
-    if (data.length === 0) return 0;
-
-    const income = categories.reduce((total, category) => {
-      const categoryTotal = calculateTotal(
-        category.rows.filter((row) => row.show),
-        category.isInverted
-      );
-      return total + (categoryTotal > 0 ? categoryTotal : 0);
-    }, 0);
-    return income;
-  };
-
-  const calculateNet = () => {
-    if (data.length === 0) return 0;
-
-    const net = calculateIncome() - calculateExpenses();
-    return Math.round(net * 100) / 100;
-  };
-
-  // Store rows in local storage and update categories
-  useEffect(() => {
-    if (data.length === 0 || data === MOCK_DATA) return;
-    localStorage.setItem("data", JSON.stringify(data));
-    const categories: Category[] = [];
-    data.forEach((row) => {
-      const category = categories.find(
-        (category) => category.name === row.category
-      );
-      if (category) {
-        category.rows.push(row);
-      } else {
-        categories.push({
-          name: row.category,
-          rows: [row],
-          isInverted: categoriesToInvert.includes(row.category),
-        });
-      }
-    });
-    setCategories(categories);
-  }, [categoriesToInvert, data]);
-
-  // Store inverted categories in local storage
-  useEffect(() => {
-    const invertedCategories = categories
-      .filter((category) => category.isInverted)
-      .map((category) => category.name);
-
-    if (invertedCategories.length === 0) return;
-    localStorage.setItem(
-      "invertedCategories",
-      JSON.stringify(invertedCategories)
-    );
-  }, [categories]);
-
-  // Load rows and inverted categories from local storage
-  useEffect(() => {
-    const data = localStorage.getItem("data");
-    if (data) {
-      setData(JSON.parse(data));
-    } else {
-      setData([...MOCK_DATA]);
-    }
-
-    const invertedCategories = localStorage.getItem("invertedCategories");
-    if (invertedCategories && invertedCategories.length > 0) {
-      setCategoriesToInvert(JSON.parse(invertedCategories));
-    }
-  }, []);
-
   return (
     <>
       <div className="drawer lg:drawer-open">
         <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
         <div className="container mx-auto drawer-content flex flex-col items-center">
           <Navbar recategoriseAll={recategoriseAll} />
-          <div className="mb-5 bg-primary ">
+          <div className="mb-5 bg-primary w-[60%] w-min-[500px]">
             <div className="collapse mb-2 collapse-arrow ">
               <input type="checkbox" defaultChecked />
               <div className="collapse-title font-medium text-white">
@@ -225,51 +119,62 @@ export default function App() {
               </div>
               <div className="collapse-content flex flex-col">
                 <div className="flex flex-row">
-                  <CSVFileInput
-                    setData={setData}
-                  />
-                  <DateFilter
-                    filterByDate={filterByDate}
-                    recategoriseAll={recategoriseAll}
-                  />
+                  <CSVFileInput />
                 </div>
-                <Charts
-                  categories={categories}
-                  calculateTotal={calculateTotal}
-                />
+                <Charts />
                 <div className="bg-base-100 p-2">
                   <p>
                     Opening Balance: ${" "}
-                    {calculateOpeningBalance().toLocaleString()}
+                    {calculateOpeningBalance(allRows).toLocaleString()}
                   </p>
-                  <p>Expenses: $ {calculateExpenses().toLocaleString()}</p>
-                  <p>Income: $ {calculateIncome().toLocaleString()}</p>
-                  <p>Net Profit/Loss: $ {calculateNet().toLocaleString()}</p>
+                  <p>
+                    Expenses: ${" "}
+                    {calculateExpenses(allRows, categories).toLocaleString()}
+                  </p>
+                  <p>
+                    Income: ${" "}
+                    {calculateIncome(allRows, categories).toLocaleString()}
+                  </p>
+                  <p>
+                    Net Profit/Loss: ${" "}
+                    {calculateNet(allRows, categories).toLocaleString()}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Search Results */}
           <div className="mb-5">
+            {/* Search Results */}
             <div className="collapse collapse-arrow mb-2">
               <input type="checkbox" defaultChecked />
               <div className="collapse-title font-medium">
                 Search
-                <kbd className="kbd ml-5">{searchRows.length}</kbd>
+                <kbd className="kbd ml-5">{searchedRows.length}</kbd>
                 <button
                   className={`btn float-right btn-sm ${
-                    calculateTotal(searchRows) > 0 ? "btn-success" : "btn-error"
+                    calculateTotal(searchedRows) > 0
+                      ? "btn-success"
+                      : "btn-error"
                   }`}
                 >
-                  ${calculateTotal(searchRows).toLocaleString()}
+                  ${calculateTotal(searchedRows).toLocaleString()}
                 </button>
               </div>
               <div className="collapse-content bg-base-100">
-                <Table rows={searchRows} />
+                <Table rows={searchedRows} />
               </div>
             </div>
 
+            {/* Sort By */}
+            <select
+              className="select select-bordered select-sm w-full max-w-xs"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.currentTarget.value as SortBy)}
+            >
+              <option value="alphabetical">Alphabetical</option>
+              <option value="amount">Amount</option>
+            </select>
             {/* Category Tables */}
             {categories.map((category, i) => {
               const showRows = category.rows.filter((row) => row.show);
@@ -312,7 +217,7 @@ export default function App() {
                         className="checkbox"
                       />
                     </div>
-                    <Table rows={showRows} />
+                    <Table rows={category.rows} />
                   </div>
                 </div>
               );

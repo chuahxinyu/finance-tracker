@@ -1,13 +1,13 @@
 import Papa from "papaparse";
 import { ChangeEvent, useState } from "react";
-import { Row } from "./types";
+import { Row } from "../types";
+import { v4 as uuidv4 } from "uuid";
+import useRowsStore from "../hooks/useStore";
 
-export default function CSVFileInput({
-  setData,
-}: {
-  setData: (data: Row[]) => void;
-}) {
+
+export default function CSVFileInput() {
   const [isOverwrite, setIsOverwrite] = useState(false);
+  const setRows = useRowsStore((state) => state.setRows);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
@@ -21,6 +21,7 @@ export default function CSVFileInput({
         const rows: Row[] = data.map((d: unknown) => {
           const d2 = d as string[];
           const row: Row = {
+            id: uuidv4(),
             date: new Date(
               d2[0].replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$2/$1/$3")
             ),
@@ -34,11 +35,12 @@ export default function CSVFileInput({
         if (!isOverwrite) {
           const existingData = localStorage.getItem("data");
           if (existingData) {
-            setData([...JSON.parse(existingData), ...rows] as Row[]);
+
+            setRows([...JSON.parse(existingData), ...rows] as Row[]);
             return;
           }
         }
-        setData([...rows]);
+        setRows([...rows]);
       },
       header: false, // Set this to true if your CSV file has headers
       dynamicTyping: true, // Set this to true if you want PapaParse to infer types

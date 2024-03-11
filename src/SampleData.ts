@@ -1,4 +1,4 @@
-export const MOCK_DATA = [
+export const SAMPLE_DATA = [
   {
     date: new Date("2023-01-01"),
     description: "Opening Balance",

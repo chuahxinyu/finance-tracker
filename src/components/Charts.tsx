@@ -1,7 +1,10 @@
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { useEffect, useState } from "react";
 import { Doughnut } from "react-chartjs-2";
-import { Category, Row } from "./types";
+import { Category } from "../types";
+import useRowsStore from "../hooks/useStore";
+import { calculateTotal } from "../calculateUtils";
+import { getCategories } from "../categoriesUtil";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -22,13 +25,8 @@ const BORDER_COLORS = [
   "rgba(255, 159, 64, 1)",
 ];
 
-export default function Charts({
-  categories,
-  calculateTotal,
-}: {
-  categories: Category[];
-  calculateTotal: (rows: Row[], isInverted?: boolean) => number;
-}) {
+export default function Charts() {
+  const rows = useRowsStore((store) => store.rows);
   const [isIncome, setIsIncome] = useState(false);
   const [chartData, setChartData] = useState({
     labels: [""],
@@ -42,7 +40,22 @@ export default function Charts({
   });
 
   useEffect(() => {
-    let filteredCategories: Category[] = [];
+    const categories: Category[] = getCategories(rows);
+    // Sort based on total
+    categories.sort((a, b) => {
+      const aTotal = calculateTotal(
+        a.rows.filter((row) => row.show),
+        a.isInverted
+      );
+      const bTotal = calculateTotal(
+        b.rows.filter((row) => row.show),
+        b.isInverted
+      );
+      return Math.abs(bTotal) - Math.abs(aTotal);
+    });
+
+    let filteredCategories: Category[];
+
     if (isIncome) {
       filteredCategories = categories.filter((category) => {
         const categoryTotal = calculateTotal(
@@ -88,7 +101,7 @@ export default function Charts({
       ],
     };
     setChartData({ ...newChartData });
-  }, [calculateTotal, categories, isIncome]);
+  }, [rows, isIncome]);
 
   return (
     <div className="bg-base-100">
